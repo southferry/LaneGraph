@@ -37,6 +37,11 @@ TArray<FVector> ULaneGraphEditorSubsystem::FindPathPositions(FGuid StartNode, FG
     return PathPoints;*/
 }
 
+ULaneNode* ULaneGraphEditorSubsystem::GetNode(FGuid Id)
+{ 
+    return Nodes.Find(Id); 
+}
+
 void ULaneGraphEditorSubsystem::TestSubsystemIsActive()
 {
     UE_LOG(LogTemp, Warning, TEXT("SubSubsystem Active"));

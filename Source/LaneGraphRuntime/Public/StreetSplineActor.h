@@ -7,6 +7,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/SplineComponent.h"
+#include "LaneNode.h"
 #include "StreetSplineActor.generated.h"
 
 UCLASS(PrioritizeCategories = "Street StreetNetwork")
@@ -40,6 +41,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Street|Lanes")
 	float MedianWidth = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Street|Lanes")
+	bool ShowLanePathDebug = true;
+
+	UFUNCTION(BlueprintCallable)
+	TArray<ULaneNode*> GenerateLaneNodes(bool Display);
+	
 
 protected:
 	// Called when the game starts or when spawned
@@ -78,8 +86,5 @@ private:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(CallInEditor, Category = "Street")
-	void BakeAllStreets();
 
 };

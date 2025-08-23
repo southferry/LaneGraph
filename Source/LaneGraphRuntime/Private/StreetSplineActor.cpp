@@ -143,18 +143,13 @@ float AStreetSplineActor::GetLaneSpacing(int32 LaneNumber) {
     return MedianWidth + ((LaneNumber + 1) * LaneWidth) - LaneWidth / 2;
 }
 
-void AStreetSplineActor::BakeAllStreets()
+TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
 {
-    DebugText("Baking Street Network...");
-}
+    TArray<ULaneNode*> Nodes;
 
-#if WITH_EDITOR
-void AStreetSplineActor::OnConstruction(const FTransform& Transform)
-{
-    Super::OnConstruction(Transform);
+    if (!StreetSpline) return Nodes;
 
-    if (!StreetSpline) return;
-
+    
     //Cleanup Debug Shapes
     TArray<USceneComponent*> DebugChildren;
     DebugRoot->GetChildrenComponents(false, DebugChildren);
@@ -162,12 +157,12 @@ void AStreetSplineActor::OnConstruction(const FTransform& Transform)
     {
         DebugShape->DestroyComponent();
     }
-
+    
     const float SplineLength = StreetSpline->GetSplineLength();
     const int32 NumSteps = FMath::FloorToInt(SplineLength / PointDensitySpacing);
 
-    FlushPersistentDebugLines(GetWorld());
-
+    TArray<ULaneNode*> PrevRightLane;
+    TArray<ULaneNode*> PrevLeftLane;
     for (int32 i = 0; i <= NumSteps; i++)
     {
         float Distance = i * PointDensitySpacing;
@@ -175,19 +170,71 @@ void AStreetSplineActor::OnConstruction(const FTransform& Transform)
         FVector RightVec = StreetSpline->GetRightVectorAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
         FVector N_Tan = StreetSpline->GetTangentAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World).GetSafeNormal();
 
+        TArray<ULaneNode*> RightLane;
         for (int32 l = 0; l < RightLaneCount; l++)
         {
             FVector LanePointLocation = Location + (RightVec * GetLaneSpacing(l));
-            DrawLanePoint(LanePointLocation, N_Tan, true);
+            if (Display) DrawLanePoint(LanePointLocation, N_Tan, true);
+
+            ULaneNode* NewNode = NewObject<ULaneNode>(this);
+            NewNode->Init(LanePointLocation);
+            
+            //R Backwards Penalty
+            for (ULaneNode* Prev : PrevRightLane)
+            {
+                NewNode->addPenalty(Prev->Id, PenaltyLevel::MEDIUM);
+            }
+
+            RightLane.Add(NewNode);
         }
 
+        TArray<ULaneNode*> LeftLane;
         for (int32 l = 0; l < LeftLaneCount; l++)
         {
             FVector LanePointLocation = Location + (RightVec * GetLaneSpacing(l) * -1);
-            DrawLanePoint(LanePointLocation, N_Tan, false);
+            if (Display) DrawLanePoint(LanePointLocation, N_Tan, false);
+
+            ULaneNode* NewNode = NewObject<ULaneNode>(this);
+            NewNode->Init(LanePointLocation);
+
+            //L Backwards Penalty
+            for (ULaneNode* Prev : PrevLeftLane)
+            {
+                Prev->addPenalty(NewNode->Id, PenaltyLevel::MEDIUM);
+            }
+
+            LeftLane.Add(NewNode);
         }
 
+        Nodes.Append(RightLane);
+        Nodes.Append(LeftLane);
+
+        PrevRightLane.Empty();
+        PrevRightLane.Append(RightLane);
+        PrevLeftLane.Empty();
+        PrevLeftLane.Append(LeftLane);
     }
+    return Nodes;
+}
+
+#if WITH_EDITOR
+void AStreetSplineActor::OnConstruction(const FTransform& Transform)
+{
+    Super::OnConstruction(Transform);
+    TArray<ULaneNode*> Nodes = GenerateLaneNodes(ShowLanePathDebug);
+    
+    /* Intense node debugging
+    for (ULaneNode* Node : Nodes)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Node ID: %s ## Node Vector: %s"), *Node->Id.ToString(EGuidFormats::DigitsWithHyphens), *Node->Position.ToString());
+        for (FGuid PenId : Node->MediumPenalty)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Penalty Node ID: %s"), *PenId.ToString(EGuidFormats::DigitsWithHyphens));
+        }
+    }
+    int32 NumNodes = Nodes.Num();
+    UE_LOG(LogTemp, Warning, TEXT("Total Nodes: %i"), NumNodes);
+    */
 }
 #endif
 
