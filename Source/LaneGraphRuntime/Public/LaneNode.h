@@ -22,10 +22,16 @@ public:
 	ULaneNode();
 
 	// Needed because no paramed constructors in unreal
-	void Init(FVector InPos);
+	void Init(FVector InPos, FGuid SplineId, float SplineNeighborDistance);
 
 	UPROPERTY(BlueprintReadOnly)
 	FGuid Id;
+
+	UPROPERTY(BlueprintReadOnly)
+	FGuid OriginalSplineId;
+
+	UPROPERTY(BlueprintReadOnly)
+	float NeighborDistance;
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector Position;

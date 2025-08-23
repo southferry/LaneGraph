@@ -28,6 +28,10 @@ public:
     void TestSubsystemIsActive();
 
 private:
-    TMap<FGuid, ULaneNode> Nodes;
+    UFUNCTION(BlueprintCallable)
+    TArray<AStreetSplineActor*> GetStreetSplineActors();
+    
+    
+    TMap<FGuid, ULaneNode*> Nodes;
 
 };

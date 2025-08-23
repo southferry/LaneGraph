@@ -7,8 +7,10 @@ ULaneNode::ULaneNode()
 {
 }
 
-void ULaneNode::Init(FVector InPos) { 
+void ULaneNode::Init(FVector InPos, FGuid SplineId, float SplineNeighborDistance) {
 	Id = FGuid::NewGuid();
+	OriginalSplineId = SplineId;
+	NeighborDistance = SplineNeighborDistance;
 	Position = InPos;
 }
 

@@ -22,17 +22,16 @@ void FLaneGraphEditorModule::RegisterMenus()
     FToolMenuSection& Section = Menu->AddSection("Teleograph", FText::FromString("Teleograph"));
 
     Section.AddMenuEntry(
-        "LaneGraphTest",
-        FText::FromString("Test LaneGraph Subsystem"),
-        FText::FromString("Prints a message to test LaneGraph SubSystem"),
+        "Build Lane Graph",
+        FText::FromString("Build Lane Graph"),
+        FText::FromString("Aggregates and processes Lane Nodes for Lane Navigation System"),
         FSlateIcon(),
-        FUIAction(FExecuteAction::CreateRaw(this, &FLaneGraphEditorModule::TestPlugin))
+        FUIAction(FExecuteAction::CreateRaw(this, &FLaneGraphEditorModule::SystemBuildGraphCommand))
     );
 }
 
-void FLaneGraphEditorModule::TestPlugin()
+void FLaneGraphEditorModule::SystemBuildGraphCommand()
 {
-    UE_LOG(LogTemp, Warning, TEXT("Testing Subsystem"));
     if (GIsEditor) // Ensure you are in an editor build
     {
         // GEditor is a global pointer to the UEditorEngine instance
@@ -43,7 +42,7 @@ void FLaneGraphEditorModule::TestPlugin()
             ULaneGraphEditorSubsystem* LGESubsystem = GEditor->GetEditorSubsystem<ULaneGraphEditorSubsystem>();
             if (LGESubsystem)
             {
-                LGESubsystem->TestSubsystemIsActive();
+                LGESubsystem->BuildGraph();
             }
         }
     }

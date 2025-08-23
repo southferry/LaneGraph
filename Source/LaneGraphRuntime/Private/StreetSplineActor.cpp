@@ -10,6 +10,8 @@ AStreetSplineActor::AStreetSplineActor()
     // Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     PrimaryActorTick.bCanEverTick = true;
 
+    Id = FGuid::NewGuid();
+
     // Create spline and set as root
     StreetSpline = CreateDefaultSubobject<USplineComponent>(TEXT("StreetSpline"));
     RootComponent = StreetSpline;
@@ -127,7 +129,7 @@ float AStreetSplineActor::GetLaneSpacing(int32 LaneNumber) {
     return MedianWidth + ((LaneNumber + 1) * LaneWidth) - LaneWidth / 2;
 }
 
-TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
+TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes()
 {
     TArray<ULaneNode*> Nodes;
 
@@ -145,6 +147,7 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
 
     const float SplineLength = StreetSpline->GetSplineLength();
     const int32 NumSteps = FMath::FloorToInt(SplineLength / PointDensitySpacing);
+    float NeighborDistance = sqrtf(LaneWidth * LaneWidth + PointDensitySpacing * PointDensitySpacing);
 
     TArray<ULaneNode*> PrevRightLane;
     TArray<ULaneNode*> PrevLeftLane;
@@ -154,15 +157,16 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
         FVector Location = StreetSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
         FVector RightVec = StreetSpline->GetRightVectorAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
         FVector N_Tan = StreetSpline->GetTangentAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World).GetSafeNormal();
+        
 
         TArray<ULaneNode*> RightLane;
         for (int32 l = 0; l < RightLaneCount; l++)
         {
             FVector LanePointLocation = Location + (RightVec * GetLaneSpacing(l));
-            if (Display) DrawLanePoint(LanePointLocation, N_Tan, true);
+            if (ShowLanePathDebug) DrawLanePoint(LanePointLocation, N_Tan, true);
 
             ULaneNode* NewNode = NewObject<ULaneNode>(this);
-            NewNode->Init(LanePointLocation);
+            NewNode->Init(LanePointLocation, Id, NeighborDistance);
             
             //R Backwards Penalty
             for (ULaneNode* Prev : PrevRightLane)
@@ -177,10 +181,10 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
         for (int32 l = 0; l < LeftLaneCount; l++)
         {
             FVector LanePointLocation = Location + (RightVec * GetLaneSpacing(l) * -1);
-            if (Display) DrawLanePoint(LanePointLocation, N_Tan, false);
+            if (ShowLanePathDebug) DrawLanePoint(LanePointLocation, N_Tan, false);
 
             ULaneNode* NewNode = NewObject<ULaneNode>(this);
-            NewNode->Init(LanePointLocation);
+            NewNode->Init(LanePointLocation, Id, NeighborDistance);
 
             //L Backwards Penalty
             for (ULaneNode* Prev : PrevLeftLane)
@@ -207,7 +211,7 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
 void AStreetSplineActor::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
-    TArray<ULaneNode*> Nodes = GenerateLaneNodes(ShowLanePathDebug);
+    TArray<ULaneNode*> Nodes = GenerateLaneNodes();
     
     /* Intense node debugging
     for (ULaneNode* Node : Nodes)

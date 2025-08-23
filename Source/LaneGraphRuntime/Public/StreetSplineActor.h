@@ -25,6 +25,9 @@ public:
 #endif
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FGuid Id;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USplineComponent* StreetSpline;
 
 	// Configurable: how often to place lane points
@@ -47,7 +50,7 @@ public:
 	bool ShowLanePathDebug = true;
 
 	UFUNCTION(BlueprintCallable)
-	TArray<ULaneNode*> GenerateLaneNodes(bool Display);
+	TArray<ULaneNode*> GenerateLaneNodes();
 
 	virtual void Tick(float DeltaTime) override;
 	
