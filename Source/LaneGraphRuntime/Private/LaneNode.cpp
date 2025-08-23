@@ -17,10 +17,13 @@ void ULaneNode::addPenalty(FGuid NodeId, PenaltyLevel level)
 	switch (level) {
 	case LOW:
 		LowPenalty.Add(NodeId);
+		break;
 	case MEDIUM:
 		MediumPenalty.Add(NodeId);
+		break;
 	case HIGH:
 		HighPenalty.Add(NodeId);
+		break;
 	}
 }
 

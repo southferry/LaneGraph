@@ -20,6 +20,7 @@ public:
 	AStreetSplineActor();
 
 #if WITH_EDITOR
+	// Editor constructor only
 	virtual void OnConstruction(const FTransform& Transform) override;
 #endif
 
@@ -47,12 +48,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<ULaneNode*> GenerateLaneNodes(bool Display);
+
+	virtual void Tick(float DeltaTime) override;
 	
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
+	
 #if WITH_EDITORONLY_DATA
 	// A root scene component just to hold debug helpers
 	UPROPERTY(VisibleAnywhere, Category = "Debug")
@@ -73,18 +74,18 @@ protected:
 	UPROPERTY(Transient)
 	UMaterialInstanceDynamic* MIDRed;
 #endif
+	
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 private:
 
 	float GetLaneSpacing(int32 LaneNumber);
 
 #if WITH_EDITORONLY_DATA
+	//debug and design utils for editor only
 	void DebugText(FString message);
 	void DrawLanePoint(FVector Loc, FVector Tan, bool Right);
 #endif
-
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
 };

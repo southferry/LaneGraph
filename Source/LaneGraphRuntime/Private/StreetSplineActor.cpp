@@ -28,7 +28,7 @@ AStreetSplineActor::AStreetSplineActor()
     }
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeMesh(TEXT("/Engine/BasicShapes/Cone.Cone"));
-    if (SphereMesh.Succeeded())
+    if (ConeMesh.Succeeded())
     {
         DebugConeMesh = ConeMesh.Object;
     }
@@ -52,17 +52,7 @@ AStreetSplineActor::AStreetSplineActor()
 // Called when the game starts or when spawned
 void AStreetSplineActor::BeginPlay()
 {
-    if (GEngine)
-    {
-        GEngine->AddOnScreenDebugMessage(
-            -1,           // Key: -1 for a unique message that doesn't overwrite others
-            5.0f,         // Duration: How long the message stays on screen (in seconds)
-            FColor::Red,  // Color: The color of the text
-            TEXT("Hello, I am a StreetSpline Actor") // The message to display
-        );
-    }
     Super::BeginPlay();
-
 }
 
 // Called every frame
@@ -72,16 +62,6 @@ void AStreetSplineActor::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
 }
-/*
-USphereComponent* Sphere = NewObject<USphereComponent>(this);
-        Sphere->AttachToComponent(DebugRoot, FAttachmentTransformRules::KeepWorldTransform);
-        Sphere->RegisterComponent();
-        Sphere->InitSphereRadius(25.f);
-        Sphere->SetWorldLocation(Node);
-        Sphere->SetHiddenInGame(true);
-
-
-*/
 
 void AStreetSplineActor::DebugText(FString message)
 {
@@ -97,6 +77,9 @@ void AStreetSplineActor::DebugText(FString message)
 
 void AStreetSplineActor::DrawLanePoint(FVector Loc, FVector Tan, bool Right)
 {
+#if WITH_EDITOR
+    if (!DebugRoot || !DebugSphereMesh || !DebugConeMesh || !MIDGreen || !MIDRed) return;
+
     UMaterialInstanceDynamic* Mat = Right ? MIDGreen : MIDRed;
     FRotator Correction = Right ? FRotator(-90.f, 0.f, 0.f) : FRotator(90.f, 0.f, 0.f);
     FVector ConeLoc = Loc + (Right ? (Tan * 10) : (Tan * -10));
@@ -137,6 +120,7 @@ void AStreetSplineActor::DrawLanePoint(FVector Loc, FVector Tan, bool Right)
     Cone->SetIsVisualizationComponent(true);       // UE treats it as "helper", hidden in Outliner
     Cone->bIsEditorOnly = true;                    // destroyed in cooked builds
     Cone->SetMobility(EComponentMobility::Movable);
+#endif
 }
 
 float AStreetSplineActor::GetLaneSpacing(int32 LaneNumber) {
@@ -149,7 +133,7 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
 
     if (!StreetSpline) return Nodes;
 
-    
+#if WITH_EDITOR
     //Cleanup Debug Shapes
     TArray<USceneComponent*> DebugChildren;
     DebugRoot->GetChildrenComponents(false, DebugChildren);
@@ -157,7 +141,8 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
     {
         DebugShape->DestroyComponent();
     }
-    
+#endif
+
     const float SplineLength = StreetSpline->GetSplineLength();
     const int32 NumSteps = FMath::FloorToInt(SplineLength / PointDensitySpacing);
 
@@ -215,6 +200,7 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes(bool Display)
         PrevLeftLane.Append(LeftLane);
     }
     return Nodes;
+    
 }
 
 #if WITH_EDITOR

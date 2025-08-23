@@ -21,6 +21,7 @@ public:
 	
 	ULaneNode();
 
+	// Needed because no paramed constructors in unreal
 	void Init(FVector InPos);
 
 	UPROPERTY(BlueprintReadOnly)
