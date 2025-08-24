@@ -1,22 +1,38 @@
 // LaneGraphEditorSubsystem.cpp
 
+#include "LaneGraphEditorSubsystem.h"
+
 #include "LaneNode.h"
 #include "StreetSplineActor.h"
 #include "NodeDataAsset.h"
+
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/SBoxPanel.h"
+
+#include "LevelEditor.h"
+#include "ToolMenus.h"
 
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 #include "Misc/PackageName.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "ObjectTools.h"
 #include "PackageTools.h"
 #include "Editor.h"
-#include "LaneGraphEditorSubsystem.h"
+
+void ULaneGraphEditorSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+    Super::Initialize(Collection);
+    AddToolbarIndicator();
+    // If one street spline says its dirty, kick off notification
+    AStreetSplineActor::OnStreetSplineDirtyEvent.AddUObject(this, &ULaneGraphEditorSubsystem::HandleDirtyStreetSpline);
+}
 
 TArray<AStreetSplineActor*> ULaneGraphEditorSubsystem::GetStreetSplineActors()
 {
     UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
 
-    ULevel* Level = EditorWorld->GetCurrentLevel(); // Or get some specific level
+    ULevel* Level = EditorWorld->GetCurrentLevel(); 
 
     TArray<AStreetSplineActor*> SSActors;
 
@@ -30,7 +46,26 @@ TArray<AStreetSplineActor*> ULaneGraphEditorSubsystem::GetStreetSplineActors()
     return SSActors;
 }
 
-void ULaneGraphEditorSubsystem::SaveNodeData()
+#if WITH_EDITOR
+void DeleteAssetIfExists(const FString& AssetPath)
+{
+    UObject* ExistingAsset = StaticLoadObject(UObject::StaticClass(), nullptr, *AssetPath);
+    if (!ExistingAsset)
+        return;
+
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+    FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FSoftObjectPath(ExistingAsset));
+
+    if (AssetData.IsValid())
+    {
+        TArray<FAssetData> AssetsToDelete;
+        AssetsToDelete.Add(AssetData);
+        ObjectTools::DeleteAssets(AssetsToDelete, /*bShowConfirmation=*/false);
+    }
+}
+#endif
+
+void ULaneGraphEditorSubsystem::SaveNodeData(TArray<ULaneNode*>& Nodes)
 {
     // Include the asset name at the end
     FString MapName = "default";
@@ -42,7 +77,9 @@ void ULaneGraphEditorSubsystem::SaveNodeData()
     const FString AssetPath = FString::Printf(TEXT("%s-%s"), 
         *UNodeDataAsset::DATA_STORAGE_PREFIX, 
         *MapName);
+#if WITH_EDITOR
 
+    DeleteAssetIfExists(*AssetPath);
     // Create package
     UPackage* Package = CreatePackage(*AssetPath);
 
@@ -56,11 +93,10 @@ void ULaneGraphEditorSubsystem::SaveNodeData()
 
     Asset->Nodes.Empty();
     // Copy your node data
-    for (const TPair<FGuid, ULaneNode*>& Element : Nodes)
+    for (ULaneNode* Node : Nodes)
     {
-        ULaneNode* LaneNodeCopy = DuplicateObject<ULaneNode>(Element.Value, Asset);
-        TTuple<FGuid, ULaneNode*> NodeCopy(LaneNodeCopy->Id, LaneNodeCopy);
-        Asset->Nodes.Add(NodeCopy);
+        ULaneNode* LaneNodeCopy = DuplicateObject<ULaneNode>(Node, Asset);
+        Asset->Nodes.Emplace(LaneNodeCopy->Id, LaneNodeCopy);
     }
 
     // Notify AssetRegistry
@@ -74,7 +110,7 @@ void ULaneGraphEditorSubsystem::SaveNodeData()
         AssetPath,
         FPackageName::GetAssetPackageExtension()
     );
-#if WITH_EDITOR
+
     FSavePackageArgs SaveArgs;
     SaveArgs.TopLevelFlags = EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
     SaveArgs.Error = GError;
@@ -88,6 +124,14 @@ void ULaneGraphEditorSubsystem::SaveNodeData()
         *PackageFileName,
         SaveArgs
     );
+
+    // Memory Cleanup because Asset Storage creates stale references
+    Asset->ClearFlags(RF_Standalone);  // Remove standalone reference
+    Asset->SetFlags(RF_Transient);
+    Asset = nullptr;
+    Package->MarkAsGarbage();
+    CollectGarbage(RF_NoFlags);
+
     if (bSaved)
     {
         UE_LOG(LogTemp, Log, TEXT("Saved baked asset to %s"), *PackageFileName);
@@ -115,7 +159,7 @@ void ULaneGraphEditorSubsystem::BuildGraph()
         }
     }
 
-    Nodes.Empty();
+    TArray<ULaneNode*> Nodes;
 
     //second pass, process neighbors from other splines, and form into TMap
     for (ULaneNode* LN : RawNodes)
@@ -130,8 +174,7 @@ void ULaneGraphEditorSubsystem::BuildGraph()
                 LN->addNeighbor(Candidate->Id);
         }
         
-        TTuple<FGuid, ULaneNode*> Node(LN->Id, LN);
-        Nodes.Add(Node);
+        Nodes.Add(LN);
         //Debug
         /*UE_LOG(LogTemp, Warning, TEXT("Node ID: %s ## Node Vector: %s ## Original SS ID: %s ## Point Spacing: %f"),
             *LN->Id.ToString(EGuidFormats::DigitsWithHyphens), 
@@ -154,33 +197,48 @@ void ULaneGraphEditorSubsystem::BuildGraph()
 
     UE_LOG(LogTemp, Warning, TEXT("Operation executed. Compiled %i Nodes in %f ms."), RawNodes.Num(), ElapsedSeconds * 1000);
 
-    SaveNodeData();
+    SaveNodeData(Nodes);
+    bIsDirty = false;
+    UpdateDirtyIndicator();
+}
+
+void ULaneGraphEditorSubsystem::HandleDirtyStreetSpline()
+{
+    // mark your state
+    bIsDirty = true;
+    UpdateDirtyIndicator();
 
 }
 
-TArray<FGuid> ULaneGraphEditorSubsystem::FindPath(FGuid StartNode, FGuid GoalNode)
+void ULaneGraphEditorSubsystem::AddToolbarIndicator()
 {
-    TArray<FGuid> Path;
-    return Path;
-    // Basic A* like in my previous sketch
-    // Returns sequence of node Ids
+    if (!UToolMenus::IsToolMenuUIEnabled())
+        return;
+
+    UToolMenu* Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
+
+    FToolMenuSection& Section = Menu->AddSection("LaneGraphIndicator", FText::FromString("LaneGraph"));
+    Section.AddEntry(FToolMenuEntry::InitWidget(
+        "LaneGraphDirtyIndicator",
+        MakeDirtyIndicatorWidget(),
+        FText::FromString("LaneGraph Status")
+    ));
 }
 
-TArray<FVector> ULaneGraphEditorSubsystem::FindPathPositions(FGuid StartNode, FGuid GoalNode)
+TSharedRef<SWidget> ULaneGraphEditorSubsystem::MakeDirtyIndicatorWidget()
 {
-    TArray<FVector> PathPoints;
-    return PathPoints;
-    //todo
-    /*TArray<int32> PathIds = FindPath(StartNode, GoalNode);
-    TArray<FVector> PathPoints;
-    for (FGuid Id : PathIds)
+    SAssignNew(DirtyIndicatorText, STextBlock)
+        .Text(FText::FromString("LaneGraph Data Status: Unkown (Bake Advisable)"))
+        .ColorAndOpacity(FLinearColor::White);
+
+    return DirtyIndicatorText.ToSharedRef();
+}
+
+void ULaneGraphEditorSubsystem::UpdateDirtyIndicator()
+{
+    if (DirtyIndicatorText.IsValid())
     {
-        PathPoints.Add(Nodes[Id].Position);
+        DirtyIndicatorText->SetText(FText::FromString(bIsDirty ? "LaneGraph Data Status: Dirty" : ""));
+        DirtyIndicatorText->SetColorAndOpacity(FLinearColor::Red);
     }
-    return PathPoints;*/
-}
-
-ULaneNode* ULaneGraphEditorSubsystem::GetNode(FGuid Id)
-{ 
-    return *Nodes.Find(Id); 
 }

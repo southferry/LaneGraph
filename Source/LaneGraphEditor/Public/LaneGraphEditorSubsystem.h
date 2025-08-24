@@ -3,8 +3,10 @@
 
 #include "CoreMinimal.h"
 #include "EditorSubsystem.h"
+#include "Subsystems/SubsystemCollection.h"
 #include "LaneNode.h"
 #include "NodeDataAsset.h"
+
 #include "LaneGraphEditorSubsystem.generated.h"
 
 UCLASS()
@@ -13,17 +15,14 @@ class LANEGRAPHEDITOR_API ULaneGraphEditorSubsystem : public UEditorSubsystem
     GENERATED_BODY()
 
 public:
+
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
     UFUNCTION(BlueprintCallable, Category = "LaneGraph")
     void BuildGraph();
 
-    UFUNCTION(BlueprintCallable, Category = "LaneGraph")
-    TArray<FGuid> FindPath(FGuid StartNode, FGuid GoalNode);
-
-    UFUNCTION(BlueprintCallable, Category = "LaneGraph")
-    TArray<FVector> FindPathPositions(FGuid StartNode, FGuid GoalNode);
-
-    UFUNCTION(BlueprintCallable, Category = "LaneGraph")
-    ULaneNode* GetNode(FGuid Id);
+    UFUNCTION()
+    void HandleDirtyStreetSpline();
 
 
 private:
@@ -31,9 +30,18 @@ private:
     TArray<AStreetSplineActor*> GetStreetSplineActors();
 
     UFUNCTION(BlueprintCallable)
-    void SaveNodeData();
-    
+    void SaveNodeData(TArray<ULaneNode*>& Nodes);
+
     UPROPERTY()
-    TMap<FGuid, ULaneNode*> Nodes;
+    bool bIsDirty = false;
+
+    void AddToolbarIndicator();
+
+    TSharedPtr<STextBlock> DirtyIndicatorText;
+
+    TSharedRef<SWidget> MakeDirtyIndicatorWidget();
+
+    void UpdateDirtyIndicator();
+
 
 };

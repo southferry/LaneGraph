@@ -10,6 +10,8 @@
 #include "LaneNode.h"
 #include "StreetSplineActor.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FOnStreetSplineDirtyEvent);
+
 UCLASS(PrioritizeCategories = "Street StreetNetwork")
 class LANEGRAPHRUNTIME_API AStreetSplineActor : public AActor
 {
@@ -51,6 +53,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<ULaneNode*> GenerateLaneNodes();
+
+	//event for triggering dirty
+	static FOnStreetSplineDirtyEvent OnStreetSplineDirtyEvent;
 
 	virtual void Tick(float DeltaTime) override;
 	

@@ -207,12 +207,18 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes()
     
 }
 
+// Declare dirty event
+FOnStreetSplineDirtyEvent AStreetSplineActor::OnStreetSplineDirtyEvent;
+
+// Editor OnConstruct (Something was changed about Actor in editor)
 #if WITH_EDITOR
 void AStreetSplineActor::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
     TArray<ULaneNode*> Nodes = GenerateLaneNodes();
-    
+
+    OnStreetSplineDirtyEvent.Broadcast();    
+
     /* Intense node debugging
     for (ULaneNode* Node : Nodes)
     {
