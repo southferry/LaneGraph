@@ -1,9 +1,16 @@
 // LaneGraphEditorSubsystem.cpp
-#include "LaneGraphEditorSubsystem.h"
-#include "StreetSplineActor.h"
-#include "Engine/World.h"
-#include "EngineUtils.h"
+
 #include "LaneNode.h"
+#include "StreetSplineActor.h"
+#include "NodeDataAsset.h"
+
+#include "UObject/Package.h"
+#include "UObject/SavePackage.h"
+#include "Misc/PackageName.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "PackageTools.h"
+#include "Editor.h"
+#include "LaneGraphEditorSubsystem.h"
 
 TArray<AStreetSplineActor*> ULaneGraphEditorSubsystem::GetStreetSplineActors()
 {
@@ -21,6 +28,75 @@ TArray<AStreetSplineActor*> ULaneGraphEditorSubsystem::GetStreetSplineActors()
         }
     }
     return SSActors;
+}
+
+void ULaneGraphEditorSubsystem::SaveNodeData()
+{
+    // Include the asset name at the end
+    FString MapName = "default";
+    if (GEditor && GEditor->GetEditorWorldContext().World())
+    {
+        UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+        MapName = EditorWorld->GetMapName();
+    }
+    const FString AssetPath = FString::Printf(TEXT("%s-%s"), 
+        *UNodeDataAsset::DATA_STORAGE_PREFIX, 
+        *MapName);
+
+    // Create package
+    UPackage* Package = CreatePackage(*AssetPath);
+
+    // Create the asset inside that package
+    UNodeDataAsset* Asset = NewObject<UNodeDataAsset>(
+        Package,
+        UNodeDataAsset::StaticClass(),
+        *FPaths::GetBaseFilename(AssetPath), // "MyLaneGraph"
+        RF_Public | RF_Standalone
+    );
+
+    Asset->Nodes.Empty();
+    // Copy your node data
+    for (const TPair<FGuid, ULaneNode*>& Element : Nodes)
+    {
+        ULaneNode* LaneNodeCopy = DuplicateObject<ULaneNode>(Element.Value, Asset);
+        TTuple<FGuid, ULaneNode*> NodeCopy(LaneNodeCopy->Id, LaneNodeCopy);
+        Asset->Nodes.Add(NodeCopy);
+    }
+
+    // Notify AssetRegistry
+    FAssetRegistryModule::AssetCreated(Asset);
+
+    // Mark dirty
+    Asset->MarkPackageDirty();
+
+    // Build the .uasset filename
+    FString PackageFileName = FPackageName::LongPackageNameToFilename(
+        AssetPath,
+        FPackageName::GetAssetPackageExtension()
+    );
+#if WITH_EDITOR
+    FSavePackageArgs SaveArgs;
+    SaveArgs.TopLevelFlags = EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
+    SaveArgs.Error = GError;
+    SaveArgs.bWarnOfLongFilename = true;
+    SaveArgs.bForceByteSwapping = false; // Set to true if needed
+    SaveArgs.SaveFlags = SAVE_None;
+    SaveArgs.bSlowTask = true;
+    bool bSaved = UPackage::SavePackage(
+        Package,
+        Asset,
+        *PackageFileName,
+        SaveArgs
+    );
+    if (bSaved)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Saved baked asset to %s"), *PackageFileName);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to save baked asset to %s"), *PackageFileName);
+    }
+#endif
 }
 
 void ULaneGraphEditorSubsystem::BuildGraph()
@@ -76,7 +152,9 @@ void ULaneGraphEditorSubsystem::BuildGraph()
     double EndTime = FPlatformTime::Seconds();
     double ElapsedSeconds = EndTime - StartTime;
 
-    UE_LOG(LogTemp, Warning, TEXT("Operation executed. Compiled %i Nodes in %f ms."), Nodes.Num(), ElapsedSeconds * 1000);
+    UE_LOG(LogTemp, Warning, TEXT("Operation executed. Compiled %i Nodes in %f ms."), RawNodes.Num(), ElapsedSeconds * 1000);
+
+    SaveNodeData();
 
 }
 
@@ -105,9 +183,4 @@ TArray<FVector> ULaneGraphEditorSubsystem::FindPathPositions(FGuid StartNode, FG
 ULaneNode* ULaneGraphEditorSubsystem::GetNode(FGuid Id)
 { 
     return *Nodes.Find(Id); 
-}
-
-void ULaneGraphEditorSubsystem::TestSubsystemIsActive()
-{
-    UE_LOG(LogTemp, Warning, TEXT("SubSubsystem Active"));
 }

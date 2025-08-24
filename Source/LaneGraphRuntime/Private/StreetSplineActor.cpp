@@ -171,7 +171,7 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes()
             //R Backwards Penalty
             for (ULaneNode* Prev : PrevRightLane)
             {
-                NewNode->addPenalty(Prev->Id, PenaltyLevel::MEDIUM);
+                NewNode->addPenalty(Prev->Id, EPenaltyLevel::MEDIUM);
             }
 
             RightLane.Add(NewNode);
@@ -189,7 +189,7 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes()
             //L Backwards Penalty
             for (ULaneNode* Prev : PrevLeftLane)
             {
-                Prev->addPenalty(NewNode->Id, PenaltyLevel::MEDIUM);
+                Prev->addPenalty(NewNode->Id, EPenaltyLevel::MEDIUM);
             }
 
             LeftLane.Add(NewNode);

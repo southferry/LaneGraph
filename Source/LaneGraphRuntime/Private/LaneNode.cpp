@@ -14,7 +14,7 @@ void ULaneNode::Init(FVector InPos, FGuid SplineId, float SplineNeighborDistance
 	Position = InPos;
 }
 
-void ULaneNode::addPenalty(FGuid NodeId, PenaltyLevel level)
+void ULaneNode::addPenalty(FGuid NodeId, EPenaltyLevel level)
 {
 	switch (level) {
 	case LOW:

@@ -6,7 +6,7 @@
 #include "LaneNode.generated.h"
 
 UENUM()
-enum PenaltyLevel {
+enum EPenaltyLevel {
 	LOW,
 	MEDIUM,
 	HIGH
@@ -49,7 +49,7 @@ public:
 	TArray<FGuid> LowPenalty;
 
 	UFUNCTION()
-	void addPenalty(FGuid NodeId, PenaltyLevel level);
+	void addPenalty(FGuid NodeId, EPenaltyLevel level);
 
 	UFUNCTION()
 	void addNeighbor(FGuid NodeId);
