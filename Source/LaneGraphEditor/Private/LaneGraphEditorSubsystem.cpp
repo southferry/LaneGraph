@@ -47,25 +47,6 @@ TArray<AStreetSplineActor*> ULaneGraphEditorSubsystem::GetStreetSplineActors()
     return SSActors;
 }
 
-#if WITH_EDITOR
-void DeleteAssetIfExists(const FString& AssetPath)
-{
-    UObject* ExistingAsset = StaticLoadObject(UObject::StaticClass(), nullptr, *AssetPath);
-    if (!ExistingAsset)
-        return;
-
-    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-    FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FSoftObjectPath(ExistingAsset));
-
-    if (AssetData.IsValid())
-    {
-        TArray<FAssetData> AssetsToDelete;
-        AssetsToDelete.Add(AssetData);
-        ObjectTools::DeleteAssets(AssetsToDelete, /*bShowConfirmation=*/false);
-    }
-}
-#endif
-
 void ULaneGraphEditorSubsystem::BuildGraph()
 {
     UE_LOG(LogTemp, Warning, TEXT("LG Editor Subsystem Active, Processing Nodes..."));
