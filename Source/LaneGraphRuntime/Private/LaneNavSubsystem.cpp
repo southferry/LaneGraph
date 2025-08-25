@@ -25,22 +25,7 @@ void ULaneNavSubsystem::TestNavData()
 {
     if (CurrentNavData)
     {
-        for (ULaneNode* LN : CurrentNavData->Nodes)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Node ID: %s ## Node Vector: %s ## Original SS ID: %s ## Point Spacing: %f"),
-                *LN->Id.ToString(EGuidFormats::DigitsWithHyphens),
-                *LN->Position.ToString(),
-                *LN->OriginalSplineId.ToString(EGuidFormats::DigitsWithHyphens),
-                LN->NeighborDistance);
-            for (FGuid PenId : LN->MediumPenalty)
-            {
-                UE_LOG(LogTemp, Warning, TEXT("Penalty Node ID: %s"), *PenId.ToString(EGuidFormats::DigitsWithHyphens));
-            }
-            for (FGuid NeighId : LN->Neighbors)
-            {
-                UE_LOG(LogTemp, Warning, TEXT("Neighbor Node ID: %s"), *NeighId.ToString(EGuidFormats::DigitsWithHyphens));
-            }
-        }
+        UE_LOG(LogTemp, Warning, TEXT("Found %d entries!"), CurrentNavData->Nodes.Num());
     }
     else {
         UE_LOG(LogTemp, Warning, TEXT("No Level Data Found!"));

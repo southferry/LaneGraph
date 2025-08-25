@@ -22,6 +22,6 @@ public:
 	UNodeDataAsset();
 
 	UPROPERTY()
-	TArray<ULaneNode*> Nodes;
+	TMap<FGuid, ULaneNode*> Nodes;
 	
 };

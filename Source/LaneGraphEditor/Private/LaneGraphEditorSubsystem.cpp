@@ -104,12 +104,10 @@ void ULaneGraphEditorSubsystem::BuildGraph()
             for (ULaneNode* Node : Nodes)
             {
                 ULaneNode* LaneNodeCopy = DuplicateObject<ULaneNode>(Node, Asset);
-                Asset->Nodes.Add(LaneNodeCopy);
+                Asset->Nodes.Emplace(LaneNodeCopy->Id, LaneNodeCopy);
             }
         }
     );
-    
-    UE_LOG(LogTemp, Warning, TEXT("finished"));
 
     bIsDirty = false;
     UpdateDirtyIndicator();
