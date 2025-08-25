@@ -21,12 +21,26 @@ public:
     virtual void Deinitialize() override;
 
     UFUNCTION(BlueprintCallable)
-    void TestNavData();
+    bool TestNavData();
+
+    UFUNCTION(BlueprintCallable)
+    ULaneNode* GetClosestNode(FVector loc);
+
+    UFUNCTION(BlueprintCallable)
+    TArray<FGuid> GetPathPoints(FGuid Start, FGuid End);
+
+    UFUNCTION(BlueprintCallable)
+    ULaneNode* GetNode(FGuid Id);
+
+    UFUNCTION(BlueprintCallable)
+    TArray<FVector> GetPositionsByIds(TArray<FGuid> Ids);
 
 private:
     // Must exactly match the delegate signatures
     void HandlePostWorldInit(UWorld* World, const UWorld::InitializationValues IVS);
     void HandleWorldTearDown(UWorld* World);
+
+    float Heuristic(const ULaneNode* A, const ULaneNode* B) const;
 
 	UPROPERTY()
 	UNodeDataAsset* CurrentNavData;
