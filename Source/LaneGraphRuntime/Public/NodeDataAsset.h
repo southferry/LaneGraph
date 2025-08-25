@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataAsset.h"
 #include "LaneNode.h"
 #include "NodeDataAsset.generated.h"
 
@@ -16,11 +15,13 @@ class LANEGRAPHRUNTIME_API UNodeDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
+
+	inline static const FString ASSET_PATH = TEXT("/Game/__Generated/Teleograph/Cache/LaneGraph/");
+	inline static const FString OBJECT_PREFIX = TEXT("LaneGraphData");
+
 	UNodeDataAsset();
 
-	inline static const FString DATA_STORAGE_PREFIX = TEXT("/Game/__Generated/Teleograph/Cache/LaneGraph/LaneGraphData");
-
-	UPROPERTY(EditAnywhere, Instanced, BlueprintReadOnly)
-	TMap<FGuid, ULaneNode*> Nodes;
+	UPROPERTY()
+	TArray<ULaneNode*> Nodes;
 	
 };

@@ -29,9 +29,6 @@ private:
     UFUNCTION(BlueprintCallable)
     TArray<AStreetSplineActor*> GetStreetSplineActors();
 
-    UFUNCTION(BlueprintCallable)
-    void SaveNodeData(TArray<ULaneNode*>& Nodes);
-
     UPROPERTY()
     bool bIsDirty = false;
 

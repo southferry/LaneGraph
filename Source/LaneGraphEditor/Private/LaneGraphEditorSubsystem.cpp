@@ -5,6 +5,7 @@
 #include "LaneNode.h"
 #include "StreetSplineActor.h"
 #include "NodeDataAsset.h"
+#include "DataAssetHelper.h"
 
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
@@ -65,139 +66,70 @@ void DeleteAssetIfExists(const FString& AssetPath)
 }
 #endif
 
-void ULaneGraphEditorSubsystem::SaveNodeData(TArray<ULaneNode*>& Nodes)
-{
-    // Include the asset name at the end
-    FString MapName = "default";
-    if (GEditor && GEditor->GetEditorWorldContext().World())
-    {
-        UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
-        MapName = EditorWorld->GetMapName();
-    }
-    const FString AssetPath = FString::Printf(TEXT("%s-%s"), 
-        *UNodeDataAsset::DATA_STORAGE_PREFIX, 
-        *MapName);
-#if WITH_EDITOR
-
-    DeleteAssetIfExists(*AssetPath);
-    // Create package
-    UPackage* Package = CreatePackage(*AssetPath);
-
-    // Create the asset inside that package
-    UNodeDataAsset* Asset = NewObject<UNodeDataAsset>(
-        Package,
-        UNodeDataAsset::StaticClass(),
-        *FPaths::GetBaseFilename(AssetPath), // "MyLaneGraph"
-        RF_Public | RF_Standalone
-    );
-
-    Asset->Nodes.Empty();
-    // Copy your node data
-    for (ULaneNode* Node : Nodes)
-    {
-        ULaneNode* LaneNodeCopy = DuplicateObject<ULaneNode>(Node, Asset);
-        Asset->Nodes.Emplace(LaneNodeCopy->Id, LaneNodeCopy);
-    }
-
-    // Notify AssetRegistry
-    FAssetRegistryModule::AssetCreated(Asset);
-
-    // Mark dirty
-    Asset->MarkPackageDirty();
-
-    // Build the .uasset filename
-    FString PackageFileName = FPackageName::LongPackageNameToFilename(
-        AssetPath,
-        FPackageName::GetAssetPackageExtension()
-    );
-
-    FSavePackageArgs SaveArgs;
-    SaveArgs.TopLevelFlags = EObjectFlags::RF_Public | EObjectFlags::RF_Standalone;
-    SaveArgs.Error = GError;
-    SaveArgs.bWarnOfLongFilename = true;
-    SaveArgs.bForceByteSwapping = false; // Set to true if needed
-    SaveArgs.SaveFlags = SAVE_None;
-    SaveArgs.bSlowTask = true;
-    bool bSaved = UPackage::SavePackage(
-        Package,
-        Asset,
-        *PackageFileName,
-        SaveArgs
-    );
-
-    // Memory Cleanup because Asset Storage creates stale references
-    Asset->ClearFlags(RF_Standalone);  // Remove standalone reference
-    Asset->SetFlags(RF_Transient);
-    Asset = nullptr;
-    Package->MarkAsGarbage();
-    CollectGarbage(RF_NoFlags);
-
-    if (bSaved)
-    {
-        UE_LOG(LogTemp, Log, TEXT("Saved baked asset to %s"), *PackageFileName);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("Failed to save baked asset to %s"), *PackageFileName);
-    }
-#endif
-}
-
 void ULaneGraphEditorSubsystem::BuildGraph()
 {
     UE_LOG(LogTemp, Warning, TEXT("LG Editor Subsystem Active, Processing Nodes..."));
     double StartTime = FPlatformTime::Seconds();
     
     //first pass, get all
-    TArray<ULaneNode*> RawNodes;
+    TArray<ULaneNode*> Nodes;
     for (AStreetSplineActor* SSActor : GetStreetSplineActors())
     {
         TArray<ULaneNode*> LaneNodes = SSActor->GenerateLaneNodes();
-        for (ULaneNode* LaneNode : LaneNodes)
-        {
-            RawNodes.Add(LaneNode);
-        }
+        Nodes.Append(LaneNodes);
     }
 
-    TArray<ULaneNode*> Nodes;
-
     //second pass, process neighbors from other splines, and form into TMap
-    for (ULaneNode* LN : RawNodes)
+    for (ULaneNode* LN : Nodes)
     {
         //Get Neighbors
         //WARNING: N^2, Need to optimize for large datasets
         LN->Neighbors.Empty();
-        for (ULaneNode* Candidate : RawNodes)
+        for (ULaneNode* Candidate : Nodes)
         {
             float Distance = FVector::Distance(Candidate->Position, LN->Position);
             if (Distance <= LN->NeighborDistance && Candidate->Id != LN->Id) 
                 LN->addNeighbor(Candidate->Id);
         }
-        
-        Nodes.Add(LN);
-        //Debug
-        /*UE_LOG(LogTemp, Warning, TEXT("Node ID: %s ## Node Vector: %s ## Original SS ID: %s ## Point Spacing: %f"),
-            *LN->Id.ToString(EGuidFormats::DigitsWithHyphens), 
-            *LN->Position.ToString(), 
-            *LN->OriginalSplineId.ToString(EGuidFormats::DigitsWithHyphens),
-            LN->NeighborDistance);
-        for (FGuid PenId : LN->MediumPenalty)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Penalty Node ID: %s"), *PenId.ToString(EGuidFormats::DigitsWithHyphens));
-        }
-        for (FGuid NeighId : LN->Neighbors)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Neighbor Node ID: %s"), *NeighId.ToString(EGuidFormats::DigitsWithHyphens));
-        }*/
     }
 
 
     double EndTime = FPlatformTime::Seconds();
     double ElapsedSeconds = EndTime - StartTime;
 
-    UE_LOG(LogTemp, Warning, TEXT("Operation executed. Compiled %i Nodes in %f ms."), RawNodes.Num(), ElapsedSeconds * 1000);
+    UE_LOG(LogTemp, Warning, TEXT("Operation executed. Compiled %i Nodes in %f ms."), Nodes.Num(), ElapsedSeconds * 1000);
 
-    SaveNodeData(Nodes);
+    /*
+    ASSET SAVE
+    */
+
+    FString MapName = "default";
+    if (GEditor && GEditor->GetEditorWorldContext().World())
+    {
+        UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+        MapName = FPackageName::GetShortName(EditorWorld->GetOutermost()->GetName());
+    }
+
+    const FString AssetPath = FString::Printf(TEXT("%s%s_%s"),
+        *UNodeDataAsset::ASSET_PATH,
+        *UNodeDataAsset::OBJECT_PREFIX,
+        *MapName);
+
+    FDataAssetHelper::CreateOrUpdateDataAsset<UNodeDataAsset>(
+        AssetPath,
+        [Nodes](UNodeDataAsset* Asset)
+        {
+            Asset->Nodes.Empty();
+            for (ULaneNode* Node : Nodes)
+            {
+                ULaneNode* LaneNodeCopy = DuplicateObject<ULaneNode>(Node, Asset);
+                Asset->Nodes.Add(LaneNodeCopy);
+            }
+        }
+    );
+    
+    UE_LOG(LogTemp, Warning, TEXT("finished"));
+
     bIsDirty = false;
     UpdateDirtyIndicator();
 }
@@ -242,3 +174,18 @@ void ULaneGraphEditorSubsystem::UpdateDirtyIndicator()
         DirtyIndicatorText->SetColorAndOpacity(FLinearColor::Red);
     }
 }
+
+//Debug
+        /*UE_LOG(LogTemp, Warning, TEXT("Node ID: %s ## Node Vector: %s ## Original SS ID: %s ## Point Spacing: %f"),
+            *LN->Id.ToString(EGuidFormats::DigitsWithHyphens),
+            *LN->Position.ToString(),
+            *LN->OriginalSplineId.ToString(EGuidFormats::DigitsWithHyphens),
+            LN->NeighborDistance);
+        for (FGuid PenId : LN->MediumPenalty)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Penalty Node ID: %s"), *PenId.ToString(EGuidFormats::DigitsWithHyphens));
+        }
+        for (FGuid NeighId : LN->Neighbors)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Neighbor Node ID: %s"), *NeighId.ToString(EGuidFormats::DigitsWithHyphens));
+        }*/
