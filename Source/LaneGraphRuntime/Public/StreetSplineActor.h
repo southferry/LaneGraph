@@ -7,7 +7,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/SplineComponent.h"
+#include "LaneNode.h"
 #include "StreetSplineActor.generated.h"
+
+DECLARE_MULTICAST_DELEGATE(FOnStreetSplineDirtyEvent);
 
 UCLASS(PrioritizeCategories = "Street StreetNetwork")
 class LANEGRAPHRUNTIME_API AStreetSplineActor : public AActor
@@ -19,8 +22,12 @@ public:
 	AStreetSplineActor();
 
 #if WITH_EDITOR
+	// Editor constructor only
 	virtual void OnConstruction(const FTransform& Transform) override;
 #endif
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FGuid Id;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USplineComponent* StreetSpline;
@@ -41,10 +48,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Street|Lanes")
 	float MedianWidth = 0.f;
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Street|Lanes")
+	bool ShowLanePathDebug = true;
 
+	UFUNCTION(BlueprintCallable)
+	TArray<ULaneNode*> GenerateLaneNodes();
+
+	//event for triggering dirty
+	static FOnStreetSplineDirtyEvent OnStreetSplineDirtyEvent;
+
+	virtual void Tick(float DeltaTime) override;
+	
+
+protected:
+	
 #if WITH_EDITORONLY_DATA
 	// A root scene component just to hold debug helpers
 	UPROPERTY(VisibleAnywhere, Category = "Debug")
@@ -65,21 +82,18 @@ protected:
 	UPROPERTY(Transient)
 	UMaterialInstanceDynamic* MIDRed;
 #endif
+	
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 private:
 
 	float GetLaneSpacing(int32 LaneNumber);
 
 #if WITH_EDITORONLY_DATA
+	//debug and design utils for editor only
 	void DebugText(FString message);
 	void DrawLanePoint(FVector Loc, FVector Tan, bool Right);
 #endif
-
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(CallInEditor, Category = "Street")
-	void BakeAllStreets();
 
 };

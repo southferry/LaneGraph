@@ -25,8 +25,11 @@ public class LaneGraphEditor : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-                "Core", "CoreUObject", "Engine", "UnrealEd", "EditorSubsystem"
-				// ... add other public dependencies that you statically link with here ...
+                "Core", 
+				"CoreUObject", 
+				"Engine", 
+				"EditorSubsystem",
+				"LaneGraphRuntime"
 			}
 			);
 			
@@ -34,11 +37,12 @@ public class LaneGraphEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"LaneGraphRuntime",
                 "LevelEditor",    // For adding menu items to Level Editor
 				"ToolMenus",      // For FToolMenus system
 				"Slate",          // For Slate UI
-				"SlateCore",      // Core Slate functionality
+				"UnrealEd",
+				"AssetRegistry",
+                "SlateCore",      // Core Slate functionality
 				"EditorStyle"     // Optional: for icons and styles
 				// ... add private dependencies that you statically link with here ...	
 			}
@@ -49,9 +53,7 @@ public class LaneGraphEditor : ModuleRules
         {
             PrivateIncludePathModuleNames.AddRange(new string[]
             {
-                "UnrealEd",
-                "LevelEditor",
-                "ToolMenus"
+                
             });
         }
 
