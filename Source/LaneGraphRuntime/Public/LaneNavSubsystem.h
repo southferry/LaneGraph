@@ -27,6 +27,9 @@ public:
     ULaneNode* GetClosestNode(FVector loc);
 
     UFUNCTION(BlueprintCallable)
+    void DrawDebugNodes(float Duration);
+
+    UFUNCTION(BlueprintCallable)
     TArray<FGuid> GetPathPoints(FGuid Start, FGuid End);
 
     UFUNCTION(BlueprintCallable)
@@ -35,12 +38,23 @@ public:
     UFUNCTION(BlueprintCallable)
     TArray<FVector> GetPositionsByIds(TArray<FGuid> Ids);
 
+
+    UPROPERTY(BlueprintReadWrite)
+    float HighPenalty = 5000.f;
+    
+    UPROPERTY(BlueprintReadWrite)
+    float MediumPenalty = 10000.f;
+
+    UPROPERTY(BlueprintReadWrite)
+    float LowPenalty = 100.f;
+
 private:
     // Must exactly match the delegate signatures
     void HandlePostWorldInit(UWorld* World, const UWorld::InitializationValues IVS);
     void HandleWorldTearDown(UWorld* World);
 
     float Heuristic(const ULaneNode* A, const ULaneNode* B) const;
+    float CalculatePenalty(const ULaneNode* From, const FGuid To) const;
 
 	UPROPERTY()
 	UNodeDataAsset* CurrentNavData;

@@ -46,6 +46,29 @@ void ULaneNavSubsystem::HandleWorldTearDown(UWorld* World)
     CurrentNavData = nullptr;
 }
 
+void ULaneNavSubsystem::DrawDebugNodes(float Duration)
+{
+    if (CurrentNavData)
+    {
+        for (TTuple<FGuid, ULaneNode*> Entry : CurrentNavData->Nodes)
+        {
+            ULaneNode* Node = Entry.Value;
+            FColor color = (Node->Forward) ? FColor::Green : FColor::Red;
+            DrawDebugSphere(
+                GetWorld(),
+                Node->Position,
+                5.f,
+                12,
+                color,
+                false,
+                Duration,
+                0,
+                1.f);
+        }
+    }
+
+}
+
 bool ULaneNavSubsystem::TestNavData()
 {
     if (CurrentNavData)
@@ -80,7 +103,23 @@ bool ULaneNavSubsystem::TestNavData()
 float ULaneNavSubsystem::Heuristic(const ULaneNode* A, const ULaneNode* B) const
 {
     // Use Euclidean distance as heuristic
-    return FVector::Dist(A->Position, B->Position);
+    return FVector::Distance(A->Position, B->Position);
+}
+
+float ULaneNavSubsystem::CalculatePenalty(const ULaneNode* From, const FGuid To) const
+{
+    if (const EPenaltyLevel* Level = From->Penalties.Find(To))
+    {
+        switch (*Level) {
+            case EPenaltyLevel::HIGH:
+                return HighPenalty;
+            case EPenaltyLevel::MEDIUM:
+                return MediumPenalty;
+            case EPenaltyLevel::LOW:
+                return LowPenalty;
+        }
+    }
+    return 0.f;
 }
 
 TArray<FGuid> ULaneNavSubsystem::GetPathPoints(FGuid Start, FGuid End)
@@ -104,7 +143,7 @@ TArray<FGuid> ULaneNavSubsystem::GetPathPoints(FGuid Start, FGuid End)
     {
         FGuid Id;
         float F;
-        bool operator<(const FOpenNode& Other) const { return F > Other.F; } // min-heap
+        bool operator<(const FOpenNode& Other) const { return F < Other.F; } // min-heap
     };
 
     TArray<FOpenNode> OpenSet;
@@ -120,12 +159,12 @@ TArray<FGuid> ULaneNavSubsystem::GetPathPoints(FGuid Start, FGuid End)
         // Get lowest F
         FOpenNode CurrentEntry;
         OpenSet.HeapPop(CurrentEntry, EAllowShrinking::Yes);
-        //OpenSet.HeapPop(CurrentEntry, true);
         FGuid CurrentId = CurrentEntry.Id;
 
         if (CurrentId == End)
         {
-            // Reconstruct path
+            // END STATE
+            // Use CameFrom to reconstruct path by pushing the next camefrom onto [0] in path
             FGuid Step = End;
             while (CameFrom.Contains(Step))
             {
@@ -148,7 +187,10 @@ TArray<FGuid> ULaneNavSubsystem::GetPathPoints(FGuid Start, FGuid End)
             ULaneNode* Neighbor = CurrentNavData->Nodes.FindRef(NeighborId);
             if (!Neighbor) continue;
 
-            const float TentativeG = GScore[CurrentId] + FVector::Dist(CurrentNode->Position, Neighbor->Position);
+            // Neighbor G = [Current G] + [Distance to Neighbor] + [NeighborPenalty]
+            const float TentativeG = GScore[CurrentId] 
+                + FVector::Dist(CurrentNode->Position, Neighbor->Position)
+                + CalculatePenalty(CurrentNode, NeighborId);
 
             if (!GScore.Contains(NeighborId) || TentativeG < GScore[NeighborId])
             {
