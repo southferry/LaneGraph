@@ -34,7 +34,7 @@ public:
 
 	// Configurable: how often to place lane points
 	UPROPERTY(EditAnywhere, Category = "Street")
-	float PointDensitySpacing = 100.f;
+	float PointDensitySpacing = 250.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Street|Lanes")
 	int32 RightLaneCount = 1;
@@ -43,7 +43,7 @@ public:
 	int32 LeftLaneCount = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Street|Lanes")
-	float LaneWidth = 100.f;
+	float LaneWidth = 250.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Street|Lanes")
 	float MedianWidth = 0.f;

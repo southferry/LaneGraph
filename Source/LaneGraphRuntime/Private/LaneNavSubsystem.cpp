@@ -57,7 +57,7 @@ void ULaneNavSubsystem::DrawDebugNodes(float Duration)
             DrawDebugSphere(
                 GetWorld(),
                 Node->Position,
-                5.f,
+                15.f,
                 12,
                 color,
                 false,

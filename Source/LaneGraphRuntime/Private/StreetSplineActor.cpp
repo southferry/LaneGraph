@@ -96,7 +96,7 @@ void AStreetSplineActor::DrawLanePoint(FVector Loc, FVector Tan, bool Right)
     Sphere->SetMaterial(0, Mat);
 
     Sphere->SetWorldLocation(Loc);
-    Sphere->SetWorldScale3D(FVector(0.07f, 0.07f, 0.01f));
+    Sphere->SetWorldScale3D(FVector(0.2f, 0.2f, 0.2f));
     Sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     Sphere->SetHiddenInGame(true);                   // never visible in PIE/game
@@ -115,7 +115,7 @@ void AStreetSplineActor::DrawLanePoint(FVector Loc, FVector Tan, bool Right)
 
     Cone->SetWorldLocation(ConeLoc);
     Cone->SetWorldRotation((Tan.Rotation().Quaternion() * Correction.Quaternion()));
-    Cone->SetWorldScale3D(FVector(0.01f, 0.07f, 0.07f));
+    Cone->SetWorldScale3D(FVector(0.1f, 0.2f, 0.2f));
     Cone->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     Cone->SetHiddenInGame(true);                   // never visible in PIE/game
