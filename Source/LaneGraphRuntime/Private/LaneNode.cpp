@@ -14,19 +14,13 @@ void ULaneNode::Init(FVector InPos, FGuid SplineId, float SplineNeighborDistance
 	Position = InPos;
 }
 
-void ULaneNode::addPenalty(FGuid NodeId, EPenaltyLevel level)
+// Always keep the highest penalty level
+void ULaneNode::addPenalty(FGuid NodeId, EPenaltyLevel NewLevel)
 {
-	switch (level) {
-	case LOW:
-		LowPenalty.Add(NodeId);
-		break;
-	case MEDIUM:
-		MediumPenalty.Add(NodeId);
-		break;
-	case HIGH:
-		HighPenalty.Add(NodeId);
-		break;
-	}
+	if (EPenaltyLevel* OldLevel = Penalties.Find(NodeId))
+		Penalties.Emplace(NodeId, (*OldLevel >= NewLevel) ? *OldLevel : NewLevel);
+	
+	Penalties.Emplace(NodeId, NewLevel);
 }
 
 

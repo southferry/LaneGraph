@@ -104,12 +104,10 @@ void ULaneGraphEditorSubsystem::BuildGraph()
             for (ULaneNode* Node : Nodes)
             {
                 ULaneNode* LaneNodeCopy = DuplicateObject<ULaneNode>(Node, Asset);
-                Asset->Nodes.Add(LaneNodeCopy);
+                Asset->Nodes.Emplace(LaneNodeCopy->Id, LaneNodeCopy);
             }
         }
     );
-    
-    UE_LOG(LogTemp, Warning, TEXT("finished"));
 
     bIsDirty = false;
     UpdateDirtyIndicator();
@@ -155,18 +153,3 @@ void ULaneGraphEditorSubsystem::UpdateDirtyIndicator()
         DirtyIndicatorText->SetColorAndOpacity(FLinearColor::Red);
     }
 }
-
-//Debug
-        /*UE_LOG(LogTemp, Warning, TEXT("Node ID: %s ## Node Vector: %s ## Original SS ID: %s ## Point Spacing: %f"),
-            *LN->Id.ToString(EGuidFormats::DigitsWithHyphens),
-            *LN->Position.ToString(),
-            *LN->OriginalSplineId.ToString(EGuidFormats::DigitsWithHyphens),
-            LN->NeighborDistance);
-        for (FGuid PenId : LN->MediumPenalty)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Penalty Node ID: %s"), *PenId.ToString(EGuidFormats::DigitsWithHyphens));
-        }
-        for (FGuid NeighId : LN->Neighbors)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Neighbor Node ID: %s"), *NeighId.ToString(EGuidFormats::DigitsWithHyphens));
-        }*/

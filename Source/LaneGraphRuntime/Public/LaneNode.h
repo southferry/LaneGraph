@@ -5,8 +5,9 @@
 #include "CoreMinimal.h"
 #include "LaneNode.generated.h"
 
-UENUM()
-enum EPenaltyLevel {
+UENUM(BlueprintType)
+enum class EPenaltyLevel : uint8
+{
 	LOW,
 	MEDIUM,
 	HIGH
@@ -37,10 +38,13 @@ public:
 	FVector Position;
 
 	UPROPERTY(BlueprintReadOnly)
-	TArray<FGuid> Neighbors;
+	bool Forward;
 
 	UPROPERTY(BlueprintReadOnly)
-	TArray<FGuid> HighPenalty;
+	TArray<FGuid> Neighbors;
+
+	UPROPERTY()
+	TMap<FGuid, EPenaltyLevel> Penalties;
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FGuid> MediumPenalty;
