@@ -223,6 +223,12 @@ TArray<ULaneNode*> AStreetSplineActor::GenerateLaneNodes()
     
 }
 
+void AStreetSplineActor::ReSync()
+{
+    TArray<ULaneNode*> Nodes = GenerateLaneNodes();
+    OnStreetSplineDirtyEvent.Broadcast();
+}
+
 // Declare dirty event
 FOnStreetSplineDirtyEvent AStreetSplineActor::OnStreetSplineDirtyEvent;
 
@@ -231,22 +237,7 @@ FOnStreetSplineDirtyEvent AStreetSplineActor::OnStreetSplineDirtyEvent;
 void AStreetSplineActor::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
-    TArray<ULaneNode*> Nodes = GenerateLaneNodes();
-
-    OnStreetSplineDirtyEvent.Broadcast();    
-
-    /* Intense node debugging
-    for (ULaneNode* Node : Nodes)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Node ID: %s ## Node Vector: %s"), *Node->Id.ToString(EGuidFormats::DigitsWithHyphens), *Node->Position.ToString());
-        for (FGuid PenId : Node->MediumPenalty)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Penalty Node ID: %s"), *PenId.ToString(EGuidFormats::DigitsWithHyphens));
-        }
-    }
-    int32 NumNodes = Nodes.Num();
-    UE_LOG(LogTemp, Warning, TEXT("Total Nodes: %i"), NumNodes);
-    */
+    ReSync();
 }
 #endif
 

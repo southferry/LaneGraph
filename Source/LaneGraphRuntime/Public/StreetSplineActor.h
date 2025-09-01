@@ -54,6 +54,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<ULaneNode*> GenerateLaneNodes();
 
+	UFUNCTION(BlueprintCallable)
+	void ReSync();
+
 	//event for triggering dirty
 	static FOnStreetSplineDirtyEvent OnStreetSplineDirtyEvent;
 

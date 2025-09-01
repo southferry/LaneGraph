@@ -21,7 +21,7 @@ public:
     virtual void Deinitialize() override;
 
     UFUNCTION(BlueprintCallable)
-    bool TestNavData();
+    bool DebugNavData();
 
     UFUNCTION(BlueprintCallable)
     ULaneNode* GetClosestNode(FVector loc);
@@ -38,6 +38,11 @@ public:
     UFUNCTION(BlueprintCallable)
     TArray<FVector> GetPositionsByIds(TArray<FGuid> Ids);
 
+    UFUNCTION(BlueprintCallable)
+    ULaneNode* GetRandomNode();
+
+    UFUNCTION(BlueprintCallable)
+    bool HasNavData();
 
     UPROPERTY(BlueprintReadWrite)
     float HighPenalty = 5000.f;
