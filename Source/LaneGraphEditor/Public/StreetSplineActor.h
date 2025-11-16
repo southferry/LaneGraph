@@ -12,8 +12,8 @@
 
 DECLARE_MULTICAST_DELEGATE(FOnStreetSplineDirtyEvent);
 
-UCLASS(PrioritizeCategories = "Street StreetNetwork")
-class LANEGRAPHRUNTIME_API AStreetSplineActor : public AActor
+UCLASS(BlueprintType, Blueprintable, PrioritizeCategories = "Street StreetNetwork", meta = (DisplayName = "Street Spline Actor (Editor Only)", CanUseInEditorUtilityActor = true))
+class LANEGRAPHEDITOR_API AStreetSplineActor : public AActor
 {
 	GENERATED_BODY()
 
@@ -53,6 +53,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<ULaneNode*> GenerateLaneNodes();
+
+	UFUNCTION(BlueprintCallable)
+	void ReSync();
 
 	//event for triggering dirty
 	static FOnStreetSplineDirtyEvent OnStreetSplineDirtyEvent;

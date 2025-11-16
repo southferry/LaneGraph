@@ -69,7 +69,18 @@ void ULaneNavSubsystem::DrawDebugNodes(float Duration)
 
 }
 
-bool ULaneNavSubsystem::TestNavData()
+bool ULaneNavSubsystem::HasNavData()
+{
+    if (IsValid(CurrentNavData) && CurrentNavData->Nodes.Num() > 0)
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+bool ULaneNavSubsystem::DebugNavData()
 {
     if (CurrentNavData)
     {
@@ -98,7 +109,7 @@ bool ULaneNavSubsystem::TestNavData()
     }
 }
 
-/* Nav */
+/* NAV */
 
 float ULaneNavSubsystem::Heuristic(const ULaneNode* A, const ULaneNode* B) const
 {
@@ -125,81 +136,84 @@ float ULaneNavSubsystem::CalculatePenalty(const ULaneNode* From, const FGuid To)
 TArray<FGuid> ULaneNavSubsystem::GetPathPoints(FGuid Start, FGuid End)
 {
     TArray<FGuid> Path;
-
-    ULaneNode* StartNode = CurrentNavData->Nodes.FindRef(Start);
-    ULaneNode* EndNode = CurrentNavData->Nodes.FindRef(End);
-
-    if (!StartNode || !EndNode)
+    if(CurrentNavData)
     {
-        return Path; // empty, invalid input
-    }
 
-    // Maps for A* bookkeeping
-    TMap<FGuid, float> GScore;   // cost from start
-    TMap<FGuid, float> FScore;   // estimated total cost
-    TMap<FGuid, FGuid> CameFrom; // parent map
+        ULaneNode* StartNode = CurrentNavData->Nodes.FindRef(Start);
+        ULaneNode* EndNode = CurrentNavData->Nodes.FindRef(End);
 
-    struct FOpenNode
-    {
-        FGuid Id;
-        float F;
-        bool operator<(const FOpenNode& Other) const { return F < Other.F; } // min-heap
-    };
-
-    TArray<FOpenNode> OpenSet;
-    OpenSet.HeapPush({ Start, 0.0f });
-
-    GScore.Add(Start, 0.0f);
-    FScore.Add(Start, Heuristic(StartNode, EndNode));
-
-    TSet<FGuid> ClosedSet;
-
-    while (OpenSet.Num() > 0)
-    {
-        // Get lowest F
-        FOpenNode CurrentEntry;
-        OpenSet.HeapPop(CurrentEntry, EAllowShrinking::Yes);
-        FGuid CurrentId = CurrentEntry.Id;
-
-        if (CurrentId == End)
+        if (!StartNode || !EndNode)
         {
-            // END STATE
-            // Use CameFrom to reconstruct path by pushing the next camefrom onto [0] in path
-            FGuid Step = End;
-            while (CameFrom.Contains(Step))
-            {
-                Path.Insert(Step, 0);
-                Step = CameFrom[Step];
-            }
-            Path.Insert(Start, 0);
-            return Path;
+            return Path; // empty, invalid input
         }
 
-        ClosedSet.Add(CurrentId);
+        // Maps for A* bookkeeping
+        TMap<FGuid, float> GScore;   // cost from start
+        TMap<FGuid, float> FScore;   // estimated total cost
+        TMap<FGuid, FGuid> CameFrom; // parent map
 
-        ULaneNode* CurrentNode = CurrentNavData->Nodes.FindRef(CurrentId);
-        if (!CurrentNode) continue;
-
-        for (const FGuid& NeighborId : CurrentNode->Neighbors)
+        struct FOpenNode
         {
-            if (ClosedSet.Contains(NeighborId)) continue;
+            FGuid Id;
+            float F;
+            bool operator<(const FOpenNode& Other) const { return F < Other.F; } // min-heap
+        };
 
-            ULaneNode* Neighbor = CurrentNavData->Nodes.FindRef(NeighborId);
-            if (!Neighbor) continue;
+        TArray<FOpenNode> OpenSet;
+        OpenSet.HeapPush({ Start, 0.0f });
 
-            // Neighbor G = [Current G] + [Distance to Neighbor] + [NeighborPenalty]
-            const float TentativeG = GScore[CurrentId] 
-                + FVector::Dist(CurrentNode->Position, Neighbor->Position)
-                + CalculatePenalty(CurrentNode, NeighborId);
+        GScore.Add(Start, 0.0f);
+        FScore.Add(Start, Heuristic(StartNode, EndNode));
 
-            if (!GScore.Contains(NeighborId) || TentativeG < GScore[NeighborId])
+        TSet<FGuid> ClosedSet;
+
+        while (OpenSet.Num() > 0)
+        {
+            // Get lowest F
+            FOpenNode CurrentEntry;
+            OpenSet.HeapPop(CurrentEntry, EAllowShrinking::Yes);
+            FGuid CurrentId = CurrentEntry.Id;
+
+            if (CurrentId == End)
             {
-                CameFrom.Add(NeighborId, CurrentId);
-                GScore.Add(NeighborId, TentativeG);
-                FScore.Add(NeighborId, TentativeG + Heuristic(Neighbor, EndNode));
+                // END STATE
+                // Use CameFrom to reconstruct path by pushing the next camefrom onto [0] in path
+                FGuid Step = End;
+                while (CameFrom.Contains(Step))
+                {
+                    Path.Insert(Step, 0);
+                    Step = CameFrom[Step];
+                }
+                Path.Insert(Start, 0);
+                return Path;
+            }
 
-                // Push to open set
-                OpenSet.HeapPush({ NeighborId, FScore[NeighborId] });
+            ClosedSet.Add(CurrentId);
+
+            ULaneNode* CurrentNode = CurrentNavData->Nodes.FindRef(CurrentId);
+            if (!CurrentNode) continue;
+
+            for (const FGuid& NeighborId : CurrentNode->Neighbors)
+            {
+                if (ClosedSet.Contains(NeighborId)) continue;
+
+                ULaneNode* Neighbor = CurrentNavData->Nodes.FindRef(NeighborId);
+                if (!Neighbor) continue;
+
+                // Neighbor G = [Current G] + [Distance to Neighbor] + [NeighborPenalty]
+                const float TentativeG = GScore[CurrentId] 
+                    + FVector::Dist(CurrentNode->Position, Neighbor->Position)
+                    + CalculatePenalty(CurrentNode, NeighborId);
+
+                if (!GScore.Contains(NeighborId) || TentativeG < GScore[NeighborId])
+                {
+                    CameFrom.Add(NeighborId, CurrentId);
+                    GScore.Add(NeighborId, TentativeG);
+                    FScore.Add(NeighborId, TentativeG + Heuristic(Neighbor, EndNode));
+
+                    // Push to open set
+                    OpenSet.HeapPush({ NeighborId, FScore[NeighborId] });
+                }
             }
         }
     }
@@ -246,4 +260,16 @@ TArray<FVector> ULaneNavSubsystem::GetPositionsByIds(TArray<FGuid> Ids)
 
     }
     return Positions;
+}
+
+ULaneNode* ULaneNavSubsystem::GetRandomNode()
+{
+    if (CurrentNavData) 
+    {
+        int32 Idx = FMath::RandRange(0, CurrentNavData->Nodes.Num()-1);
+        TArray<FGuid> Keys;
+        CurrentNavData->Nodes.GenerateKeyArray(Keys);
+        return CurrentNavData->Nodes.FindRef(Keys[Idx]);
+    }
+    return nullptr;
 }
