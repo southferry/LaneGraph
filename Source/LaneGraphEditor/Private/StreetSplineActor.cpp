@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+
 
 #include "StreetSplineActor.h"
 #include "DrawDebugHelpers.h"
@@ -7,7 +7,6 @@
 // Sets default values
 AStreetSplineActor::AStreetSplineActor()
 {
-    // Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     PrimaryActorTick.bCanEverTick = true;
 
     Id = FGuid::NewGuid();
@@ -99,9 +98,9 @@ void AStreetSplineActor::DrawLanePoint(FVector Loc, FVector Tan, bool Right)
     Sphere->SetWorldScale3D(FVector(0.2f, 0.2f, 0.2f));
     Sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    Sphere->SetHiddenInGame(true);                   // never visible in PIE/game
-    Sphere->SetIsVisualizationComponent(true);       // UE treats it as "helper", hidden in Outliner
-    Sphere->bIsEditorOnly = true;                    // destroyed in cooked builds
+    Sphere->SetHiddenInGame(true);
+    Sphere->SetIsVisualizationComponent(true);
+    Sphere->bIsEditorOnly = true;
     Sphere->SetMobility(EComponentMobility::Movable);
 
     //directional cone
@@ -118,9 +117,9 @@ void AStreetSplineActor::DrawLanePoint(FVector Loc, FVector Tan, bool Right)
     Cone->SetWorldScale3D(FVector(0.1f, 0.2f, 0.2f));
     Cone->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    Cone->SetHiddenInGame(true);                   // never visible in PIE/game
-    Cone->SetIsVisualizationComponent(true);       // UE treats it as "helper", hidden in Outliner
-    Cone->bIsEditorOnly = true;                    // destroyed in cooked builds
+    Cone->SetHiddenInGame(true);
+    Cone->SetIsVisualizationComponent(true);
+    Cone->bIsEditorOnly = true;
     Cone->SetMobility(EComponentMobility::Movable);
 #endif
 }

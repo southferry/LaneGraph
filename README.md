@@ -28,14 +28,14 @@ Provided by the `ULaneNavSubsystem` (a `UWorldSubsystem`) to query graph data at
 See : [LaneNavSubsystem.h](Source/LaneGraphRuntime/Public/LaneNavSubsystem.h).
 
 **Runtime Data Types**
-- **`ULaneNode`** (see [Source/LaneGraphRuntime/Public/LaneNode.h](Source/LaneGraphRuntime/Public/LaneNode.h))
+- **`ULaneNode`** (see [LaneNode.h](Source/LaneGraphRuntime/Public/LaneNode.h))
 	- Properties: `Id`, `OriginalSplineId`, `NeighborDistance`, `Position`, `Forward`, `Neighbors`, penalty maps and lists.
 	- Methods: `addNeighbor(FGuid NodeId)`, `addPenalty(FGuid NodeId, EPenaltyLevel level)`.
-- **`UNodeDataAsset`** (see [Source/LaneGraphRuntime/Public/NodeDataAsset.h](Source/LaneGraphRuntime/Public/NodeDataAsset.h))
+- **`UNodeDataAsset`** (see [NodeDataAsset.h](Source/LaneGraphRuntime/Public/NodeDataAsset.h))
 	- Holds `TMap<FGuid, ULaneNode*> Nodes` and constants for asset path/prefix used when saving generated data.
 
 **Editor Module & Tools**
-- `FLaneGraphEditorModule` registers editor menus and exposes a `SystemBuildGraphCommand()` used by the editor UI. See [Source/LaneGraphEditor/Public/LaneGraphEditor.h](Source/LaneGraphEditor/Public/LaneGraphEditor.h).
+- `FLaneGraphEditorModule` registers editor menus and exposes a `SystemBuildGraphCommand()` used by the editor UI. See [LaneGraphEditor.h](Source/LaneGraphEditor/Public/LaneGraphEditor.h).
 - `ULaneGraphEditorSubsystem` provides `BuildGraph()` and editor integration (dirty indicators, toolbar widgets).
 
 **Blueprint Notes**

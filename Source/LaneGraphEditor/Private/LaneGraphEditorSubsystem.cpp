@@ -1,4 +1,3 @@
-// LaneGraphEditorSubsystem.cpp
 
 #include "LaneGraphEditorSubsystem.h"
 
